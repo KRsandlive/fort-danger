@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>포트 위험성과 대응 방법</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f9f9f9;
+      padding: 0;
+      margin: 0;
+      line-height: 1.8;
+    }
+    .navbar {
+      background-color: #0d47a1;
+      padding: 15px 30px;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 999;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+    .navbar h1 {
+      font-size: 20px;
+      margin: 0;
+    }
+    .navbar nav a {
+      color: white;
+      text-decoration: none;
+      margin-left: 20px;
+      font-weight: bold;
+      padding-bottom: 2px;
+    }
+    .navbar nav a.active {
+      border-bottom: 2px solid white;
+    }
+    .port-section {
+      background-color: #ffffff;
+      border-left: 6px solid #1976d2;
+      padding: 20px;
+      margin: 40px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .port-section h2 {
+      color: #0d47a1;
+    }
+    .risk {
+      background-color: #fff3e0;
+      border-left: 4px solid #ff9800;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    .steps {
+      background-color: #e8f5e9;
+      border-left: 4px solid #43a047;
+      padding: 15px;
+    }
+    .steps h3 {
+      margin-top: 0;
+      color: #2e7d32;
+    }
+    code {
+      background-color: #f1f1f1;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+    strong {
+      color: #000;
+    }
+    .video-container {
+      position: relative;
+      padding-bottom: 56.25%;
+      height: 0;
+      overflow: hidden;
+    }
+    .video-container iframe {
+      position: absolute;
+      top: 0;
+      left: 15%;
+      width: 70%;
+      height: 70%;
+    }
+    @media (max-width: 768px) {
+      .video-container iframe {
+        left: 0;
+        width: 100%;
+        height: 100%;
+      }
+    }
+   .visitor-counter {
+    position: relative;
+    right: 20px;
+    bottom: 10px;
+    font-size: 14px;
+     color: white;
+    user-select: none;
+}
+  </style>
+</head>
+<body>
+<div class="navbar">
+  <h1>포트 보안 가이드</h1> 
+  <div class="visitor-counter" id="visitor-counter">방문자 수 불러오는 중...</div>
+  <nav>
+    <a href="#video" id="nav-video">영상</a>
+    <a href="#port139" id="nav-139">139번 포트</a>
+    <a href="#port445" id="nav-445">445번 포트</a>
+    <a href="#port135" id="nav-135">135번 포트</a>
+    <a href="#caution" id="nav-caution">주의사항</a>
+  </nav>
+  
+</div>
+
+
+<div class="port-section" id="video">
+  <h2>포트의 보안에 관한 영상</h2>
+  <h3>139번 포트, 445번 포트에 대한 영상</h3>
+  <div class="video-container">
+    <iframe src="https://www.youtube.com/embed/KOyZdnjUSQg?si=2yIYwf96YdCRKYno"
+            title="YouTube video player"
+            frameborder="0">
+    </iframe>
+  </div>
+  <h3>Windows에서 특정한 포트를 닫는 방법에 대한 영상</h3>
+  <div class="video-container">
+    <iframe src="https://www.youtube.com/embed/B2y7pseyDEA?si=GLSn0q34WR6VBOtR"
+            title="YouTube video player"
+            frameborder="0"
+            allowfullscreen>
+    </iframe>
+  </div>
+</div>
+
+<div class="port-section" id="port139">
+  <h2>139번 포트</h2>
+  <div class="risk">
+    <p><strong>위험성:</strong> 오래된 NetBIOS 프로토콜을 사용하는 포트로, 인증 절차 없이 컴퓨터 이름과 공유 자원이 노출될 수 있습니다. 브로드캐스트 방식으로 정보가 네트워크 전체에 퍼지며, 해커가 이를 악용해 시스템을 침해할 수 있습니다.</p>
+    <p>NetBIOS는 1983년 IBM이 만든 기술로, 현재는 DNS 체계로 대체되었지만 여전히 윈도우 PC에서는 로컬 네트워크 상에서 컴퓨터 이름(PC 이름)을 식별할 때 이 방식을 사용합니다. 따라서 139번 포트가 열려 있는 경우, 내 PC 이름과 호스트 정보가 브로드캐스트를 통해 쉽게 외부에 노출될 수 있습니다.</p>
+  </div>
+  <div class="steps">
+    <h3>해결 방법</h3>
+    <ol>
+      <li>제어판 → <strong>네트워크 및 공유 센터</strong> → <strong>어댑터 설정 변경</strong> → 사용하는 네트워크에 마우스 오른쪽 클릭 후 <strong>속성</strong></li>
+      <li><strong>인터넷 프로토콜 버전 4(TCP/IPv4)</strong> 선택 → <strong>속성</strong> → <strong>고급</strong> → <strong>WINS 탭</strong></li>
+      <li><strong>NetBIOS over TCP/IP 사용 안 함</strong> 선택 → 확인</li>
+      <li>실행(Win + R) → <code>services.msc</code> 입력 → <strong>TCP/IP NetBIOS Helper</strong> 중지 및 사용 안 함</li>
+      <li>Windows 방화벽 → 고급 설정 → <strong>인바운드 규칙</strong>에서 <strong>포트 139</strong> 차단</li>
+    </ol>
+  </div>
+</div>
+
+<div class="port-section" id="port445">
+  <h2>445번 포트</h2>
+  <div class="risk">
+    <p><strong>위험성:</strong> SMB 프로토콜에 사용되며, 워너크라이 랜섬웨어 같은 공격에 이용된 포트입니다. SMBv1은 특히 취약하여 보안 위협이 매우 큽니다.</p>
+  </div>
+  <div class="steps">
+    <h3>해결 방법</h3>
+    <ol>
+      <li>PowerShell(관리자 권한) 실행 → 아래 명령 입력 후 Enter:<br>
+        <code>Set-SmbServerConfiguration -EnableSMB1Protocol $false</code>
+      </li>
+      <li>제어판 → <strong>Windows 기능 켜기/끄기</strong> → <strong>SMB 1.0/CIFS 지원</strong> 항목 체크 해제</li>
+      <li>방화벽 고급 설정 → <strong>인바운드 규칙 > 새 규칙</strong> 생성 → 포트 선택 → TCP, 포트 번호 <strong>445</strong> 입력 → 연결 차단</li>
+    </ol>
+  </div>
+</div>
+
+<div class="port-section" id="port135">
+  <h2>135번 포트</h2>
+  <div class="risk">
+    <p><strong>위험성:</strong> RPC(Remote Procedure Call) 포트로, 해커가 원격 명령을 실행해 시스템을 장악할 수 있는 통로입니다. 과거 운영체제에서 취약점이 보고되었으며, 현재도 사용 시 주의가 필요합니다.</p>
+  </div>
+  <div class="steps">
+    <h3>해결 방법</h3>
+    <ol>
+      <li>실행 창(Win + R) → <code>dcomcnfg</code> 입력 → <strong>구성 요소 서비스 > 내 컴퓨터</strong> 우클릭 → <strong>속성</strong></li>
+      <li><strong>DCOM 사용 해제</strong> 또는 보안 탭에서 원격 접근 제한</li>
+      <li>방화벽 고급 설정 → <strong>인바운드 규칙 > 새 규칙</strong> 생성 → 포트 135 차단</li>
+      <li>서비스 설정(services.msc)에서 <strong>불필요한 원격 서비스</strong> 비활성화</li>
+      <li>이벤트 뷰어 검색 → <strong>Windows 로그 > 보안</strong> → RPC 관련 접근 기록 점검</li>
+    </ol>
+  </div>
+</div>
+
+<div class="port-section" id="caution">
+  <h2>주의사항</h2>
+  <div class="risk">
+    <ul>
+      <li><strong>139번 포트</strong>: NetBIOS를 끄면 일부 오래된 네트워크 프로그램이나 공유 기능이 동작하지 않을 수 있습니다.</li>
+      <li><strong>445번 포트</strong>: SMB 차단 시 네트워크 프린터, 파일 공유 기능이 모두 중단됩니다. 필요한 경우 방화벽 차단 대신 SMBv1 비활성화만 하세요. SMBv2/v3는 유지하되 보안 패치를 주기적으로 적용해야 합니다.</li>
+      <li><strong>135번 포트</strong>: RPC는 시스템 전반에서 사용되므로 과도한 차단은 Windows 기능과 원격 도구 작동에 문제를 일으킬 수 있습니다. 과거의 구조적 취약점은 대부분 패치되었지만, 2022~2025년에도 CVE-2025-29969 등의 새로운 RPC 취약점이 지속적으로 보고되었으므로, 시스템 및 보안 업데이트를 반드시 정기적으로 적용해야 합니다.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+  const sections = document.querySelectorAll('.port-section');
+  const navLinks = document.querySelectorAll('.navbar nav a');
+
+  window.addEventListener('scroll', () => {
+    let current = "";
+    sections.forEach(section => {
+      const sectionTop = section.offsetTop - 150;
+      if (pageYOffset >= sectionTop) {
+        current = section.getAttribute("id");
+      }
+    });
+
+    navLinks.forEach(link => {
+      link.classList.remove("active");
+      if (link.getAttribute("href").includes(current)) {
+        link.classList.add("active");
+      }
+    });
+  });
+fetch('/.netlify/functions/visitor')
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById('visitor-counter').innerText = `오늘 ${data.today}명 / 전체 ${data.total}명 방문`;
+  })
+  .catch(err => {
+    document.getElementById('visitor-counter').innerText = '방문자 수 표시 오류';
+  });
+</script>
+</body>
+</html>
