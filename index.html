@@ -228,15 +228,18 @@
       }
     });
   });
-async function fetchVisitorData() {
+  async function fetchVisitorData() {
     try {
-      const res = await fetch('/.netlify/functions/visitor');
+      const res = await fetch('https://fortdanger.netlify.app/.netlify/functions/visitor');
+      if (!res.ok) throw new Error('네트워크 응답 실패');
       const data = await res.json();
 
+      // 방문자 수 표시
       document.getElementById('visitor-counter').innerText = `오늘 ${data.today}명 / 전체 ${data.total}명 방문`;
 
+      // IP별 접속자 수 표시
       const ipListContainer = document.getElementById('ip-list');
-      ipListContainer.innerHTML = '';
+      ipListContainer.innerHTML = '';  // 초기화
 
       data.uniqueIps.forEach(({ ip, count }) => {
         const div = document.createElement('div');
@@ -245,6 +248,7 @@ async function fetchVisitorData() {
       });
     } catch (e) {
       document.getElementById('visitor-counter').innerText = '방문자 수 표시 오류';
+      console.error(e);
     }
   }
   fetchVisitorData();
