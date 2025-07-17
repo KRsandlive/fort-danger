@@ -228,30 +228,26 @@
       }
     });
   });
-fetch('/.netlify/functions/visitor')
-    .then(res => res.json())
-    .then(data => {
-      // 방문자 수 간단 표시
-      const counter = document.getElementById('visitor-counter');
-      counter.innerText = `오늘 ${data.todayUniqueIPs}명 / 전체 ${data.totalUniqueIPs}명 방문`;
+async function fetchVisitorData() {
+    try {
+      const res = await fetch('/.netlify/functions/visitor');
+      const data = await res.json();
 
-      // IP별 방문자 리스트 만들기
-      let ipListHTML = '<ul style="color:white; font-size:14px; margin-top:5px;">';
-      data.ipVisits.forEach(({ ip, count }) => {
-        ipListHTML += `<li>${ip} (${count}명)</li>`;
+      document.getElementById('visitor-counter').innerText = `오늘 ${data.today}명 / 전체 ${data.total}명 방문`;
+
+      const ipListContainer = document.getElementById('ip-list');
+      ipListContainer.innerHTML = '';
+
+      data.uniqueIps.forEach(({ ip, count }) => {
+        const div = document.createElement('div');
+        div.textContent = `${ip} (${count}명)`;
+        ipListContainer.appendChild(div);
       });
-      ipListHTML += '</ul>';
-
-      // 방문자 카운터 아래에 추가
-      const visitorCounterDiv = document.getElementById('visitor-counter');
-      // 기존 텍스트 유지 + ip 리스트 추가
-      visitorCounterDiv.innerHTML += ipListHTML;
-    })
-    .catch(err => {
-      const counter = document.getElementById('visitor-counter');
-      counter.innerText = '방문자 수 표시 오류';
-      console.error(err);
-    });
+    } catch (e) {
+      document.getElementById('visitor-counter').innerText = '방문자 수 표시 오류';
+    }
+  }
+  fetchVisitorData();
 </script>
 </body>
 </html>
