@@ -15,45 +15,46 @@ exports.handler = async function(event, context) {
     const today = now.toISOString().slice(0, 10);
     const currentTime = now.toISOString();
 
-    // 1. 방문 기록 - 오늘 처음 방문이면 insert, 중복이면 업데이트 안함 (중복 방문은 count에 반영 안함)
+    // 방문 기록이 이미 있으면 count+1, time 업데이트
+    // 없으면 새로 insert
     await client.query(
-      `INSERT INTO visitors (ip, date, time, count)
-       VALUES ($1, $2, $3, 1)
-       ON CONFLICT (ip, date) DO NOTHING`,
+      `INSERT INTO visitors (ip, date, count, time)
+       VALUES ($1, $2, 1, $3)
+       ON CONFLICT (ip, date) DO UPDATE
+       SET count = visitors.count + 1,
+           time = EXCLUDED.time`,
       [ip, today, currentTime]
     );
 
-    // 2. ip별 방문 누적 횟수: ip의 총 count 합 (하루 1회만 카운트하니 방문일수=횟수)
-    const ipCountRes = await client.query(
-      `SELECT SUM(count) FROM visitors WHERE ip = $1`,
-      [ip]
-    );
-    const ipCount = parseInt(ipCountRes.rows[0].sum) || 0;
-
-    // 3. 오늘 방문자 수 (IP 기준 중복 불가)
-    const todayCountRes = await client.query(
-      `SELECT COUNT(*) FROM visitors WHERE date = $1`,
+    // 오늘 방문한 고유 IP 수 (하루 전체 방문자 수)
+    const todayVisitorRes = await client.query(
+      `SELECT COUNT(DISTINCT ip) AS count FROM visitors WHERE date = $1`,
       [today]
     );
-    const todayCount = parseInt(todayCountRes.rows[0].count) || 0;
+    const todayVisitors = parseInt(todayVisitorRes.rows[0].count) || 0;
 
-    // 4. 전체 방문자 수 (IP 기준 중복 불가)
-    const totalCountRes = await client.query(
-      `SELECT COUNT(*) FROM visitors`
+    // 전체 방문 기록 수 (모든 행의 count 합)
+    const totalVisitsRes = await client.query(
+      `SELECT SUM(count) AS total_count FROM visitors`
     );
-    const totalCount = parseInt(totalCountRes.rows[0].count) || 0;
+    const totalVisits = parseInt(totalVisitsRes.rows[0].total_count) || 0;
+
+    // 이 IP의 오늘 방문 횟수
+    const ipCountRes = await client.query(
+      `SELECT count FROM visitors WHERE ip = $1 AND date = $2`,
+      [ip, today]
+    );
+    const ipVisitCount = ipCountRes.rows[0]?.count || 0;
 
     return {
       statusCode: 200,
       body: JSON.stringify({
         ip,
-        count: ipCount,   // ip별 총 방문 누적 횟수(하루 1회 중복불가)
-        today: todayCount,
-        total: totalCount,
-        lastVisitTime: currentTime
+        ipVisitCount,
+        todayVisitors,
+        totalVisits,
       }),
     };
-
   } catch (error) {
     console.error('DB error:', error);
     return {
