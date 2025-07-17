@@ -1,22 +1,22 @@
 const { Client } = require('pg');
 
 exports.handler = async function(event, context) {
+  // 방문자의 IP 주소 추출 (프록시 사용 시 고려)
   const ip = (event.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
 
   const client = new Client({
     connectionString: process.env.NETLIFY_DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
+    ssl: { rejectUnauthorized: false },
   });
 
   try {
     await client.connect();
 
     const now = new Date();
-    const today = now.toISOString().slice(0, 10);
-    const currentTime = now.toISOString();
+    const today = now.toISOString().slice(0, 10);  // YYYY-MM-DD
+    const currentTime = now.toISOString();         // ISO timestamp
 
-    // 방문 기록이 이미 있으면 count+1, time 업데이트
-    // 없으면 새로 insert
+    // 방문 기록 저장 또는 count 누적, 최신 방문 시간 갱신
     await client.query(
       `INSERT INTO visitors (ip, date, count, time)
        VALUES ($1, $2, 1, $3)
@@ -26,18 +26,19 @@ exports.handler = async function(event, context) {
       [ip, today, currentTime]
     );
 
-    // 오늘 방문한 고유 IP 수 (하루 전체 방문자 수)
+    // 오늘 방문한 고유 IP 수 (고유 방문자 수)
     const todayVisitorRes = await client.query(
       `SELECT COUNT(DISTINCT ip) AS count FROM visitors WHERE date = $1`,
       [today]
     );
     const todayVisitors = parseInt(todayVisitorRes.rows[0].count) || 0;
 
-    // 전체 누적 방문 일수 (IP+날짜별 고유 방문 기록 개수)
-    const totalVisitorsRes = await client.query(
-      `SELECT COUNT(DISTINCT ip, date) AS total_unique_visits FROM visitors`
+    // 오늘 전체 방문 횟수 합산
+    const totalVisitsRes = await client.query(
+      `SELECT SUM(count) AS total_count FROM visitors WHERE date = $1`,
+      [today]
     );
-    const totalVisitors = parseInt(totalVisitorsRes.rows[0].total_unique_visits) || 0;
+    const totalVisits = parseInt(totalVisitsRes.rows[0].total_count) || 0;
 
     // 이 IP의 오늘 방문 횟수
     const ipCountRes = await client.query(
@@ -50,11 +51,12 @@ exports.handler = async function(event, context) {
       statusCode: 200,
       body: JSON.stringify({
         ip,
-        count: ipVisitCount,
-        today: todayVisitors,
-        total: totalVisitors,
+        ipVisitCount,
+        todayVisitors,
+        totalVisits,
       }),
     };
+
   } catch (error) {
     console.error('DB error:', error);
     return {
