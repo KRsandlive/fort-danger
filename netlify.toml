@@ -1,2 +1,7 @@
 [build]
   functions = "netlify/functions"
+  command = "npm run build"  # 빌드 명령어가 있다면
+  publish = "dist"           # 정적 파일 출력 폴더 (필요 시)
+
+[build.environment]
+  PG_CONNECTION_STRING = "postgresql://neondb_owner:npg_sivB60ocWfPl@ep-wandering-violet-aeaez7lz-pooler.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
