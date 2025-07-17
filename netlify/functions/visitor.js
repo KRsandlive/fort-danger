@@ -13,42 +13,45 @@ exports.handler = async function(event, context) {
 
     const now = new Date();
     const today = now.toISOString().slice(0, 10); // YYYY-MM-DD
-    const currentTime = now.toISOString(); // full timestamp
+    const currentTime = now.toISOString();
 
-    // 1. IP + 오늘 날짜 조합이 이미 존재하는지 확인
+    // 오늘 날짜 + IP 조합 확인
     const existingRes = await client.query(
       `SELECT count FROM visitors WHERE ip = $1 AND date = $2`,
       [ip, today]
     );
 
+    let isNewTodayVisitor = false;
+
     if (existingRes.rows.length === 0) {
-      // 2-1. 없으면 새로 삽입
+      // 오늘 첫 방문 → insert + 이 방문은 total에도 반영
       await client.query(
         `INSERT INTO visitors (ip, date, count, time) VALUES ($1, $2, 1, $3)`,
         [ip, today, currentTime]
       );
+      isNewTodayVisitor = true;
     } else {
-      // 2-2. 있으면 count += 1
+      // 이미 방문 → count만 증가
       await client.query(
         `UPDATE visitors SET count = count + 1, time = $3 WHERE ip = $1 AND date = $2`,
         [ip, today, currentTime]
       );
     }
 
-    // 3. 오늘 고유 방문자 수
+    // 오늘 고유 방문자 수
     const todayUniqueRes = await client.query(
       `SELECT COUNT(*) AS unique_visitors FROM visitors WHERE date = $1`,
       [today]
     );
     const todayVisitors = parseInt(todayUniqueRes.rows[0]?.unique_visitors) || 0;
 
-    // 4. 전체 누적 방문 횟수
-    const totalVisitsRes = await client.query(
-      `SELECT SUM(count) AS total_count FROM visitors`
+    // 전체 누적 방문 수: 오늘 방문자 수만 합산
+    const totalRes = await client.query(
+      `SELECT SUM(1) AS total FROM visitors`
     );
-    const totalVisits = parseInt(totalVisitsRes.rows[0]?.total_count) || 0;
+    const totalVisits = parseInt(totalRes.rows[0]?.total) || 0;
 
-    // 5. 이 IP의 오늘 방문 횟수
+    // 이 IP의 오늘 방문 횟수
     const ipTodayRes = await client.query(
       `SELECT count FROM visitors WHERE ip = $1 AND date = $2`,
       [ip, today]
@@ -59,9 +62,9 @@ exports.handler = async function(event, context) {
       statusCode: 200,
       body: JSON.stringify({
         ip,
-        count: ipTodayCount,     // 오늘 해당 IP의 방문 횟수
-        today: todayVisitors,    // 오늘의 고유 방문자 수
-        total: totalVisits       // 전체 누적 방문 횟수
+        count: ipTodayCount,
+        today: todayVisitors,
+        total: totalVisits
       })
     };
   } catch (err) {
