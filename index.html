@@ -5,10 +5,17 @@
   <title>포트 위험성과 대응 방법</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script>
-  if (window.innerWidth <= 768) {
-    window.location.href = "mobile.html";
-  }
-</script>
+    // DOM이 완전히 로드된 후 실행
+    document.addEventListener("DOMContentLoaded", function () {
+      const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+      const screenIsSmall = window.innerWidth <= 768;
+
+      // 모바일 기기이거나 화면 너비가 작을 때 리디렉션
+      if (isMobile || screenIsSmall) {
+        window.location.replace("mobile.html");
+      }
+    });
+  </script>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
