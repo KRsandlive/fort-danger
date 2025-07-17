@@ -12,35 +12,44 @@ exports.handler = async function(event, context) {
     await client.connect();
 
     const now = new Date();
-    const today = now.toISOString().slice(0, 10); // YYYY-MM-DD
-    const currentTime = now.toISOString();        // full timestamp
+    const today = now.toISOString().slice(0, 10);
+    const currentTime = now.toISOString();
 
-    // 방문 기록 저장 혹은 count 누적 + 최신 방문시간 갱신
+    // 1. 방문 기록 - 오늘 처음 방문이면 insert, 중복이면 업데이트 안함 (중복 방문은 count에 반영 안함)
     await client.query(
       `INSERT INTO visitors (ip, date, time, count)
        VALUES ($1, $2, $3, 1)
-       ON CONFLICT (ip, date) DO UPDATE
-       SET count = visitors.count + 1,
-           time = EXCLUDED.time`,  // 최신 방문시간으로 갱신
+       ON CONFLICT (ip, date) DO NOTHING`,
       [ip, today, currentTime]
     );
 
-    const totalRes = await client.query(`SELECT SUM(count) FROM visitors`);
-    const total = totalRes.rows[0].sum || 0;
+    // 2. ip별 방문 누적 횟수: ip의 총 count 합 (하루 1회만 카운트하니 방문일수=횟수)
+    const ipCountRes = await client.query(
+      `SELECT SUM(count) FROM visitors WHERE ip = $1`,
+      [ip]
+    );
+    const ipCount = parseInt(ipCountRes.rows[0].sum) || 0;
 
-    const todayRes = await client.query(`SELECT SUM(count) FROM visitors WHERE date = $1`, [today]);
-    const todayCount = todayRes.rows[0].sum || 0;
+    // 3. 오늘 방문자 수 (IP 기준 중복 불가)
+    const todayCountRes = await client.query(
+      `SELECT COUNT(*) FROM visitors WHERE date = $1`,
+      [today]
+    );
+    const todayCount = parseInt(todayCountRes.rows[0].count) || 0;
 
-    const ipRes = await client.query(`SELECT SUM(count) FROM visitors WHERE ip = $1`, [ip]);
-    const ipCount = ipRes.rows[0].sum || 0;
+    // 4. 전체 방문자 수 (IP 기준 중복 불가)
+    const totalCountRes = await client.query(
+      `SELECT COUNT(*) FROM visitors`
+    );
+    const totalCount = parseInt(totalCountRes.rows[0].count) || 0;
 
     return {
       statusCode: 200,
       body: JSON.stringify({
         ip,
-        count: ipCount,
+        count: ipCount,   // ip별 총 방문 누적 횟수(하루 1회 중복불가)
         today: todayCount,
-        total: total,
+        total: totalCount,
         lastVisitTime: currentTime
       }),
     };
