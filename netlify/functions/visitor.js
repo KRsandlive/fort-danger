@@ -1,55 +1,64 @@
 const { Client } = require('pg');
 
 exports.handler = async function(event, context) {
+  // ✅ IP 추출 (여기!)
+  const ip = (event.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
+
+  // ✅ PostgreSQL 연결 설정
   const client = new Client({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
+    connectionString: process.env.PG_CONNECTION_STRING, // .env에 설정한 DB 주소
+    ssl: { rejectUnauthorized: false }, // Netlify에서 sslmode=require 대응
   });
 
-  await client.connect();
+  try {
+    await client.connect();
 
-  const ip =
-    event.headers['x-forwarded-for']?.split(',')[0] ||
-    event.headers['client-ip'] ||
-    'unknown';
+    // 오늘 날짜 추출
+    const today = new Date().toISOString().slice(0, 10);
 
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    // 1. 접속 기록 저장 또는 누적
+    await client.query(
+      `INSERT INTO visitors (ip, date, count) 
+       VALUES ($1, $2, 1)
+       ON CONFLICT (ip, date) DO UPDATE 
+       SET count = visitors.count + 1`,
+      [ip, today]
+    );
 
-  // 1. 방문 기록 삽입
-  await client.query(
-    'INSERT INTO visit_log (ip_address) VALUES ($1)',
-    [ip]
-  );
+    // 2. 전체 방문 수
+    const totalResult = await client.query(`SELECT SUM(count) FROM visitors`);
+    const total = totalResult.rows[0].sum || 0;
 
-  // 2. 해당 IP의 누적 접속 횟수
-  const { rows: countRows } = await client.query(
-    'SELECT COUNT(*) FROM visit_log WHERE ip_address = $1',
-    [ip]
-  );
-  const count = parseInt(countRows[0].count);
+    // 3. 오늘 방문 수
+    const todayResult = await client.query(
+      `SELECT SUM(count) FROM visitors WHERE date = $1`,
+      [today]
+    );
+    const todayCount = todayResult.rows[0].sum || 0;
 
-  // 3. 오늘 전체 방문자 수
-  const { rows: todayRows } = await client.query(
-    'SELECT COUNT(*) FROM visit_log WHERE visit_time >= $1',
-    [todayStart]
-  );
-  const today = parseInt(todayRows[0].count);
+    // 4. 해당 IP의 누적 방문 수
+    const ipResult = await client.query(
+      `SELECT SUM(count) FROM visitors WHERE ip = $1`,
+      [ip]
+    );
+    const ipCount = ipResult.rows[0].sum || 0;
 
-  // 4. 전체 방문자 수
-  const { rows: totalRows } = await client.query('SELECT COUNT(*) FROM visit_log');
-  const total = parseInt(totalRows[0].count);
-
-  await client.end();
-
-  return {
-    statusCode: 200,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      ip,
-      count,
-      today,
-      total,
-    }),
-  };
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        ip,
+        count: ipCount,
+        today: todayCount,
+        total: total,
+      }),
+    };
+  } catch (error) {
+    console.error('DB error:', error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Internal Server Error' }),
+    };
+  } finally {
+    await client.end();
+  }
 };
