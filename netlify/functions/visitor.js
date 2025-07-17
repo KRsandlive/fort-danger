@@ -31,28 +31,28 @@ exports.handler = async function(event, context) {
       `SELECT COUNT(DISTINCT ip) AS count FROM visitors WHERE date = $1`,
       [today]
     );
-    const todayVisitors = parseInt(todayVisitorRes.rows[0]?.count) || 0;
+    const todayVisitors = parseInt(todayVisitorRes.rows[0].count) || 0;
 
-    // 전체 방문 기록 수 (모든 행의 count 합)
-    const totalVisitsRes = await client.query(
-      `SELECT SUM(count) AS total_count FROM visitors`
+    // 전체 누적 방문 일수 (IP+날짜별 고유 방문 기록 개수)
+    const totalVisitorsRes = await client.query(
+      `SELECT COUNT(DISTINCT ip, date) AS total_unique_visits FROM visitors`
     );
-    const totalVisits = parseInt(totalVisitsRes.rows[0]?.total_count) || 0;
+    const totalVisitors = parseInt(totalVisitorsRes.rows[0].total_unique_visits) || 0;
 
     // 이 IP의 오늘 방문 횟수
     const ipCountRes = await client.query(
       `SELECT count FROM visitors WHERE ip = $1 AND date = $2`,
       [ip, today]
     );
-    const count = ipCountRes.rows[0]?.count || 0;
+    const ipVisitCount = ipCountRes.rows[0]?.count || 0;
 
     return {
       statusCode: 200,
       body: JSON.stringify({
         ip,
-        count,          // ip당 오늘 방문 횟수
-        today: todayVisitors,  // 오늘 방문한 고유 IP 수
-        total: totalVisits,    // 전체 방문 누적 수
+        count: ipVisitCount,
+        today: todayVisitors,
+        total: totalVisitors,
       }),
     };
   } catch (error) {
