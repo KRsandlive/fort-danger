@@ -244,7 +244,7 @@
     // 내 IP 및 오늘 방문 횟수 표시
     const ipInfoElem = document.getElementById('ip-info');
     if (ipInfoElem) {
-      ipInfoElem.innerText = `당신의 IP(${data.ip}) 오늘 방문 횟수: ${data.count}회`;
+      ipInfoElem.innerText = `현재 접속한 IP(${data.ip})의 오늘 총 방문 횟수: ${data.count}회`;
     }
   } catch (e) {
     console.error(e);
