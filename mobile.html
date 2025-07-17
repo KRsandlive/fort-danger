@@ -1,44 +1,127 @@
-<!-- mobile.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
   <meta charset="UTF-8">
+  <title>포트 보안 가이드 - 모바일</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>모바일 메뉴</title>
   <style>
     body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #fff;
       margin: 0;
-      font-family: sans-serif;
+      padding: 10px;
+      line-height: 1.7;
     }
-    nav.mobile {
-      background-color: #333;
-      padding: 1em;
-    }
-    nav.mobile ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-    }
-    nav.mobile li {
-      margin-bottom: 1em;
-    }
-    nav.mobile a {
+    .navbar {
+      background-color: #0d47a1;
       color: white;
-      text-decoration: none;
-      font-size: 1.2em; /* 모바일 글자 크기 적절히 설정 */
+      padding: 10px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 999;
+    }
+    .navbar h1 {
+      font-size: 16px;
+      margin: 0;
+    }
+    .visitor-counter {
+      font-size: 12px;
+      color: white;
+      margin-top: 5px;
+    }
+    .section {
+      background-color: #f1f1f1;
+      border-left: 4px solid #1976d2;
+      margin: 20px 0;
+      padding: 15px;
+    }
+    .section h2 {
+      font-size: 18px;
+      color: #0d47a1;
+    }
+    .section p, .section li {
+      font-size: 14px;
+    }
+    .video-container {
+      position: relative;
+      padding-bottom: 56.25%;
+      height: 0;
+      overflow: hidden;
+    }
+    .video-container iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
     }
   </style>
 </head>
 <body>
-  <nav class="mobile">
-    <ul>
-      <li><a href="#">홈</a></li>
-      <li><a href="#">소개</a></li>
-      <li><a href="#">서비스</a></li>
-      <li><a href="#">연락처</a></li>
-    </ul>
-  </nav>
+<div class="navbar">
+  <h1>포트 보안 가이드 - 모바일</h1>
+  <div class="visitor-counter" id="visitor-counter">방문자 수 불러오는 중...</div>
+</div>
+
+<div class="section">
+  <h2>영상 안내</h2>
+  <div class="video-container">
+    <iframe src="https://www.youtube.com/embed/KOyZdnjUSQg?si=2yIYwf96YdCRKYno" frameborder="0" allowfullscreen></iframe>
+  </div>
+  <div class="video-container">
+    <iframe src="https://www.youtube.com/embed/B2y7pseyDEA?si=GLSn0q34WR6VBOtR" frameborder="0" allowfullscreen></iframe>
+  </div>
+</div>
+
+<div class="section">
+  <h2>139번 포트</h2>
+  <p><strong>위험성:</strong> 오래된 NetBIOS 프로토콜로 인해 인증 없이 컴퓨터 정보가 노출될 수 있습니다.</p>
+  <ul>
+    <li>제어판 > 네트워크 어댑터 설정 > 속성 > WINS > NetBIOS 비활성화</li>
+    <li>services.msc에서 TCP/IP NetBIOS Helper 중지</li>
+    <li>Windows 방화벽 인바운드 규칙으로 139 포트 차단</li>
+  </ul>
+</div>
+
+<div class="section">
+  <h2>445번 포트</h2>
+  <p><strong>위험성:</strong> SMB 프로토콜로 랜섬웨어 공격 대상이 되는 포트입니다.</p>
+  <ul>
+    <li>PowerShell에서 <code>Set-SmbServerConfiguration -EnableSMB1Protocol $false</code></li>
+    <li>Windows 기능에서 SMB 1.0/CIFS 체크 해제</li>
+    <li>445 포트 방화벽 차단</li>
+  </ul>
+</div>
+
+<div class="section">
+  <h2>135번 포트</h2>
+  <p><strong>위험성:</strong> 원격 명령 실행(RPC)과 관련된 취약점이 존재합니다.</p>
+  <ul>
+    <li>DCOM 설정에서 원격 접근 제한</li>
+    <li>방화벽에서 135 포트 차단</li>
+    <li>불필요한 원격 서비스 비활성화</li>
+  </ul>
+</div>
+
+<div class="section">
+  <h2>주의사항</h2>
+  <ul>
+    <li>139번 비활성화 시 일부 구형 공유기능 사용 불가</li>
+    <li>445번 차단 시 네트워크 프린터 등 영향</li>
+    <li>135번은 시스템 기능 영향 있으므로 신중하게</li>
+  </ul>
+</div>
+
+<script>
+  fetch('/.netlify/functions/visitor')
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById('visitor-counter').innerText = `오늘 ${data.today}명 / 전체 ${data.total}명 방문`;
+    })
+    .catch(() => {
+      document.getElementById('visitor-counter').innerText = '방문자 수 표시 오류';
+    });
+</script>
 </body>
 </html>
