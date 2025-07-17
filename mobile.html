@@ -5,14 +5,11 @@
   <title>포트 보안 가이드 - 모바일</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script>
-    // DOM이 완전히 로드된 후 실행
     document.addEventListener("DOMContentLoaded", function () {
-      const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-      const screenIsSmall = window.innerWidth > 768;
-
-      // 모바일 기기이거나 화면 너비가 작을 때 리디렉션
-      if (isMobile || screenIsSmall) {
-        window.location.replace("mobile.html");
+      const isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+      if (!isMobile || window.innerWidth > 768) {
+        // PC 환경으로 판단되면 PC 사이트로 리디렉션
+        window.location.replace("index.html"); // 메인 PC용 HTML 경로
       }
     });
   </script>
