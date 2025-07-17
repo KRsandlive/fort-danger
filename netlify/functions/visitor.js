@@ -11,34 +11,42 @@ exports.handler = async function(event, context) {
   try {
     await client.connect();
 
-    const today = new Date().toISOString().slice(0, 10);
+    const now = new Date().toISOString();            // 현재 시간 (ex: 2025-07-17T14:23:00.123Z)
+    const dayStart = now.slice(0, 10) + 'T00:00:00Z'; // 오늘 00:00:00 UTC
+    const dayEnd = now.slice(0, 10) + 'T23:59:59Z';   // 오늘 23:59:59 UTC
 
-    // 1. 오늘 해당 IP 방문 기록 조회
+    // 1. 오늘 이미 방문한 기록이 있는지 확인 (ip + 오늘 날짜 범위)
     const visitCheck = await client.query(
-      `SELECT count FROM visitors WHERE ip = $1 AND date = $2`,
-      [ip, today]
+      `SELECT count FROM visitors WHERE ip = $1 AND date >= $2 AND date <= $3`,
+      [ip, dayStart, dayEnd]
     );
 
     if (visitCheck.rowCount === 0) {
-      // 방문 기록 없으면 새로 삽입 (count=1)
+      // 오늘 첫 방문: 새 기록 삽입
       await client.query(
         `INSERT INTO visitors (ip, date, count) VALUES ($1, $2, 1)`,
-        [ip, today]
+        [ip, now]
       );
-    } // 있으면 아무 업데이트 안 함 (하루 1회 방문으로 카운트 고정)
+    } else {
+      // 이미 방문 기록 있음: count 업데이트 (옵션)
+      await client.query(
+        `UPDATE visitors SET count = count + 1 WHERE ip = $1 AND date >= $2 AND date <= $3`,
+        [ip, dayStart, dayEnd]
+      );
+    }
 
-    // 전체 방문 수 (모든 count 합)
+    // 2. 전체 방문 수 합산
     const totalResult = await client.query(`SELECT SUM(count) FROM visitors`);
     const total = totalResult.rows[0].sum || 0;
 
-    // 오늘 방문 수 (오늘 날짜 기준 count 합)
+    // 3. 오늘 방문 수 합산
     const todayResult = await client.query(
-      `SELECT SUM(count) FROM visitors WHERE date = $1`,
-      [today]
+      `SELECT SUM(count) FROM visitors WHERE date >= $1 AND date <= $2`,
+      [dayStart, dayEnd]
     );
     const todayCount = todayResult.rows[0].sum || 0;
 
-    // 해당 IP의 누적 방문 수
+    // 4. 해당 IP의 누적 방문 수 합산
     const ipResult = await client.query(
       `SELECT SUM(count) FROM visitors WHERE ip = $1`,
       [ip]
@@ -51,7 +59,7 @@ exports.handler = async function(event, context) {
         ip,
         count: ipCount,
         today: todayCount,
-        total,
+        total: total,
       }),
     };
   } catch (error) {
