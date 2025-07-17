@@ -4,6 +4,13 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>포트 위험성과 대응 방법 - 모바일</title>
+<script>
+  // 모바일 페이지에서 PC 해상도일 경우 PC 페이지로 자동 이동
+  if (window.innerWidth > 1024) {
+    window.location.href = "/"; // PC 메인페이지로 리디렉션
+  }
+</script>
+
 <style>
   body {
     font-family: 'Segoe UI', sans-serif;
@@ -239,7 +246,7 @@ nav.active {
     </ul>
   </div>
 </div>
-
+<p>PC 사용자는 <a href="index.html">여기</a>를 클릭하세요.</p>
 <script>
   // 메뉴 토글
   const menuToggle = document.getElementById('menu-toggle');
