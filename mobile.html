@@ -255,26 +255,24 @@ nav.active {
   });
 
    async function fetchVisitorData() {
-    try {
-      const res = await fetch('https://fortdanger.netlify.app/.netlify/functions/visitor');
-      if (!res.ok) throw new Error('네트워크 응답 실패');
-      const data = await res.json();
+  try {
+    const res = await fetch('https://fortdanger.netlify.app/.netlify/functions/visitor');
+    if (!res.ok) throw new Error('네트워크 응답 실패');
+    const data = await res.json();
 
-      // 전체 방문자 수
-      document.getElementById('visitor-counter').innerText =
-        `오늘 ${data.today}명 / 전체 ${data.total}명 방문`;
+    document.getElementById('visitor-counter').innerText =
+      `오늘 ${data.today}명 / 전체 ${data.total}명 방문`;
 
-      // 본인 IP와 접속 횟수
-      const ipInfo = document.getElementById('ip-info');
-      ipInfo.innerText = `당신의 IP (${data.ip})는 총 ${data.count}번 접속했습니다.`;
-    } catch (e) {
-      document.getElementById('visitor-counter').innerText = '방문자 수 표시 오류';
-      document.getElementById('ip-info').innerText = 'IP 정보 불러오기 실패';
-      console.error(e);
-    }
+    const ipInfo = document.getElementById('ip-info');
+    ipInfo.innerText = `당신의 IP (${data.ip})는 총 ${data.count}번 접속했습니다.`;
+  } catch (e) {
+    document.getElementById('visitor-counter').innerText = '방문자 수 표시 오류';
+    document.getElementById('ip-info').innerText = 'IP 정보 불러오기 실패';
+    console.error(e);
   }
+}
+fetchVisitorData();
 
-  fetchVisitorData();
 </script>
 
 </body>
