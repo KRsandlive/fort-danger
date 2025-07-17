@@ -70,7 +70,8 @@
 <body>
 <div class="navbar">
   <h1>포트 보안 가이드 - 모바일</h1>
-  <div class="visitor-counter" id="visitor-counter">방문자 수 불러오는 중...</div>
+  <div id="visitor-counter">방문자 수 불러오는 중...</div>
+<div id="ip-list" style="margin-top:10px; font-size:14px; color:#333;"></div>
 </div>
 
 <div class="section">
@@ -123,14 +124,27 @@
 </div>
 
 <script>
-  fetch('/.netlify/functions/visitor')
-    .then(res => res.json())
-    .then(data => {
+   async function fetchVisitorData() {
+    try {
+      const res = await fetch('/.netlify/functions/visitor');
+      const data = await res.json();
+
       document.getElementById('visitor-counter').innerText = `오늘 ${data.today}명 / 전체 ${data.total}명 방문`;
-    })
-    .catch(() => {
+
+      const ipListContainer = document.getElementById('ip-list');
+      ipListContainer.innerHTML = '';
+
+      data.ipCounts.forEach(({ ip, count }) => {
+        const item = document.createElement('div');
+        item.textContent = `${ip} (${count}명)`;
+        ipListContainer.appendChild(item);
+      });
+    } catch (error) {
       document.getElementById('visitor-counter').innerText = '방문자 수 표시 오류';
-    });
+    }
+  }
+
+  fetchVisitorData();
 </script>
 </body>
 </html>
