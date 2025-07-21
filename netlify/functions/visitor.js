@@ -1,79 +1,68 @@
-const { Client } = require('pg');
+import { kv } from '@vercel/kv';
 
-exports.handler = async function(event, context) {
-  const ip = (event.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
+export default async function handler(event, context) {
+  const headers = {
+    'Access-Control-Allow-Origin': '*', // 또는 'https://fortdanger.shop'만 명시적으로 허용 가능
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  };
 
-  const client = new Client({
-    connectionString: process.env.NETLIFY_DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
-  });
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers,
+      body: 'Preflight passed',
+    };
+  }
 
   try {
-    await client.connect();
-
+    // 현재 시간 (KST, UTC+9로 조정)
     const now = new Date();
-    const today = now.toISOString().slice(0, 10); // YYYY-MM-DD
-    const currentTime = now.toISOString();
+    const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+    const date = kst.toISOString().slice(0, 10); // YYYY-MM-DD
+    const hourKey = kst.toISOString().slice(0, 13); // YYYY-MM-DDTHH
 
-    // 오늘 날짜 + IP 조합 확인
-    const existingRes = await client.query(
-      `SELECT count FROM visitors WHERE ip = $1 AND date = $2`,
-      [ip, today]
-    );
+    // IP 주소 추출
+    const ip =
+      event.headers['x-forwarded-for']?.split(',')[0] ||
+      event.headers['x-real-ip'] ||
+      event.requestContext?.identity?.sourceIp ||
+      'unknown';
 
-    let isNewTodayVisitor = false;
+    // 오늘 날짜 기준 방문 여부 확인
+    const ipKey = `visit:${date}:${ip}`;
+    const alreadyVisited = await kv.get(ipKey);
 
-    if (existingRes.rows.length === 0) {
-      // 오늘 첫 방문 → insert + 이 방문은 total에도 반영
-      await client.query(
-        `INSERT INTO visitors (ip, date, count, time) VALUES ($1, $2, 1, $3)`,
-        [ip, today, currentTime]
-      );
-      isNewTodayVisitor = true;
-    } else {
-      // 이미 방문 → count만 증가
-      await client.query(
-        `UPDATE visitors SET count = count + 1, time = $3 WHERE ip = $1 AND date = $2`,
-        [ip, today, currentTime]
-      );
+    if (!alreadyVisited) {
+      await kv.set(ipKey, '1', { ex: 60 * 60 * 24 }); // 24시간 후 만료
+
+      // 방문자 수 증가
+      await kv.incr('visitor:total');
+      await kv.incr(`visitor:daily:${date}`);
+      await kv.incr(`visitor:hourly:${hourKey}`);
     }
 
-    // 오늘 고유 방문자 수
-    const todayUniqueRes = await client.query(
-      `SELECT COUNT(*) AS unique_visitors FROM visitors WHERE date = $1`,
-      [today]
-    );
-    const todayVisitors = parseInt(todayUniqueRes.rows[0]?.unique_visitors) || 0;
-
-    // 전체 누적 방문 수: 오늘 방문자 수만 합산
-    const totalRes = await client.query(
-      `SELECT SUM(1) AS total FROM visitors`
-    );
-    const totalVisits = parseInt(totalRes.rows[0]?.total) || 0;
-
-    // 이 IP의 오늘 방문 횟수
-    const ipTodayRes = await client.query(
-      `SELECT count FROM visitors WHERE ip = $1 AND date = $2`,
-      [ip, today]
-    );
-    const ipTodayCount = parseInt(ipTodayRes.rows[0]?.count) || 0;
+    // 방문자 수 가져오기
+    const total = parseInt((await kv.get('visitor:total')) || '0');
+    const today = parseInt((await kv.get(`visitor:daily:${date}`)) || '0');
 
     return {
       statusCode: 200,
+      headers,
       body: JSON.stringify({
-        ip,
-        count: ipTodayCount,
-        today: todayVisitors,
-        total: totalVisits
-      })
+        totalVisitors: total,
+        todayVisitors: today,
+        ip: ip,
+        date: date,
+        hour: hourKey,
+        kstTime: kst.toISOString(),
+      }),
     };
-  } catch (err) {
-    console.error('DB error:', err);
+  } catch (error) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Internal Server Error' })
+      headers,
+      body: JSON.stringify({ error: error.message }),
     };
-  } finally {
-    await client.end();
   }
-};
+}
