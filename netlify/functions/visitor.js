@@ -1,17 +1,19 @@
 import { kv } from '@vercel/kv';
 
-export default async function handler(event, context) {
+export async function handler(event, context) {
   const headers = {
-    'Access-Control-Allow-Origin': '*', // 또는 'https://fortdanger.shop'만 명시적으로 허용 가능
+    // 보안상 정확한 출처 명시 권장 ('*' 대신)
+    'Access-Control-Allow-Origin': 'https://fortdanger.shop',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   };
 
   if (event.httpMethod === 'OPTIONS') {
+    // 프리플라이트 요청에 대해 204 No Content로 응답
     return {
-      statusCode: 200,
+      statusCode: 204,
       headers,
-      body: 'Preflight passed',
+      body: '',
     };
   }
 
@@ -52,8 +54,8 @@ export default async function handler(event, context) {
       body: JSON.stringify({
         totalVisitors: total,
         todayVisitors: today,
-        ip: ip,
-        date: date,
+        ip,
+        date,
         hour: hourKey,
         kstTime: kst.toISOString(),
       }),
